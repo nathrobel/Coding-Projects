@@ -2,9 +2,15 @@ import socket  # noqa: F401
 
 
 def handle_request(client_socket):
-    client_socket.recv(1024)
-    response  = "HTTP/1.1 200 OK\r\n\r\n"
-    client_socket.send(response.encode())
+    data = client_socket.recv(1024)
+    requested = data.decode()
+    if requested.startswith("GET / HTTP/1.1"):
+        response  = "HTTP/1.1 200 OK\r\n\r\n"
+    else:
+        response  = "HTTP/1.1 404 Not Found\r\n\r\n"
+    client_socket.sendall(response.encode())
+
+
 
 
    
