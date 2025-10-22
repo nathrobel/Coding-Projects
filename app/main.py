@@ -1,8 +1,10 @@
 import threading 
 import socket  # noqa: F401
+import sys
 
-
+directory = "."
 def handle_request(client_socket):
+    global directory
     try:
         data = client_socket.recv(1024)
         requested = data.decode()
@@ -25,6 +27,23 @@ def handle_request(client_socket):
 
             user_agent_val_length = len(user_agent_val)
             response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {user_agent_val_length}\r\n\r\n{user_agent_val}"
+        elif requested.startswith("GET /files/"):
+            path = requested.split()[1]
+            filename = path[len("/files/"):]
+            filepath = f"{directory}/{filename}"
+            try:
+                with open(filepath,"rb") as f:
+                    content = f.read()
+                    length = len(content)
+                    headers = (f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length:{length} \r\n\r\n")
+                    client_socket.sendall(headers.encode() + content)
+                    return
+                    
+            except FileNotFoundError:
+                response = "HTTP/1.1 404 Not Found\r\n\r\n"
+                client_socket.sendall(response.encode())
+                return 
+
 
         else:
             response  = "HTTP/1.1 404 Not Found\r\n\r\n"
@@ -41,7 +60,12 @@ def handle_request(client_socket):
 
 def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
+    global directory 
     print("Logs from your program will appear here!")
+    if len(sys.argv) > 2 and sys.argv[1] == "--directory":
+        directory = sys.argv[2]
+
+    print(f"Serving files from directory: {directory}")
 
     # Uncomment this to pass the first stage
     #
