@@ -15,7 +15,22 @@ def handle_request(client_socket):
             path = requested.split()[1]
             message = path[len("/echo/"):]
             content_length = len(message)
-            response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {content_length}\r\n\r\n{message}"
+            lines = requested.splitlines()
+            header_lines = lines[1:]
+            
+            for line in header_lines:
+                if line.lower().startswith("accept-encoding:"):
+                    accept_encoding = line[len("accept-encoding:"):]
+                    break
+            
+            compressed_body = "empty"
+                 
+            if accept_encoding.strip() == "gzip":
+                response = f"HTTP/1.1 200 OK\r\nContent-Encoding:{accept_encoding}\r\nContent-Type: text/plain\r\nContent-Length: {content_length}\r\n{compressed_body}"
+            else:
+                response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {content_length}\r\n\r\n{message}"
+
+
         elif requested.startswith("GET /user-agent"):
             lines  = requested.splitlines()
             user_agent_val = ""
@@ -28,6 +43,10 @@ def handle_request(client_socket):
 
             user_agent_val_length = len(user_agent_val)
             response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {user_agent_val_length}\r\n\r\n{user_agent_val}"
+
+
+
+
         elif requested.startswith("GET /files/"):
             path = requested.split()[1]
             filename = path[len("/files/"):]
@@ -81,7 +100,7 @@ def handle_request(client_socket):
 
 def main():
     global directory 
-    print("Logs from your program will appear here!")
+    print("Logs from the program will appear here!")
     if len(sys.argv) > 2 and sys.argv[1] == "--directory":
         directory = sys.argv[2]
 
