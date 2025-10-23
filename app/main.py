@@ -3,6 +3,7 @@ import socket  # noqa: F401
 import sys
 
 directory = "."
+
 def handle_request(client_socket):
     global directory
     try:
@@ -43,6 +44,26 @@ def handle_request(client_socket):
                 response = "HTTP/1.1 404 Not Found\r\n\r\n"
                 client_socket.sendall(response.encode())
                 return 
+        elif requested.startswith("POST /files/"):
+            path = requested.split()[1]
+            filename = path[len("/files/"):]
+            filepath = f"{directory}/{filename}"
+            header_body = requested.split("\r\n\r\n")
+            
+
+            try:
+                with open(filepath,"wb") as f:
+                    content = header_body[1]
+                    f.write(content.encode())
+                    response = (f"HTTP/1.1 201 OK\r\n")
+                    client_socket.sendall(response.encode())
+                    return
+            except Exception as e:
+                print(f"error writing file:{e}")
+                response = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
+                client_socket.sendall(response.encode())
+                return
+
 
 
         else:
@@ -59,7 +80,6 @@ def handle_request(client_socket):
 
 
 def main():
-    # You can use print statements as follows for debugging, they'll be visible when running tests.
     global directory 
     print("Logs from your program will appear here!")
     if len(sys.argv) > 2 and sys.argv[1] == "--directory":
@@ -67,11 +87,7 @@ def main():
 
     print(f"Serving files from directory: {directory}")
 
-    # Uncomment this to pass the first stage
-    #
-    #everytime a new client sends a request you want to call handle_request t1= threading.thread(target = handle_request)
-    # put it in the while loop ?? so it keeps on creating threads for different conccurent reuqests
-    # .start() and .join for each thread 
+    
     server_socket = socket.create_server(("localhost", 4221), reuse_port=True)
     try:
         while True:
