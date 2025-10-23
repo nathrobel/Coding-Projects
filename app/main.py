@@ -55,7 +55,7 @@ def handle_request(client_socket):
                 with open(filepath,"wb") as f:
                     content = header_body[1]
                     f.write(content.encode())
-                    response = (f"HTTP/1.1 201 OK\r\n\r\n")
+                    response = (f"HTTP/1.1 201 Created\r\n\r\n")
                     client_socket.sendall(response.encode())
                     return
             except Exception as e:
