@@ -5,6 +5,7 @@ import sys
 directory = "."
 
 def handle_request(client_socket):
+    #glob
     global directory
     try:
         data = client_socket.recv(1024)
