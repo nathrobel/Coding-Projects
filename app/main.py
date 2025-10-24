@@ -18,7 +18,8 @@ def handle_request(client_socket):
             content_length = len(message)
             lines = requested.splitlines()
             header_lines = lines[1:]
-            
+
+            accept_encoding = ""
             for line in header_lines:
                 if line.lower().startswith("accept-encoding:"):
                     accept_encoding = line[len("accept-encoding:"):]
