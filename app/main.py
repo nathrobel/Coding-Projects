@@ -19,19 +19,21 @@ def handle_request(client_socket):
             lines = requested.splitlines()
             header_lines = lines[1:]
 
-            accept_encoding = ""
+            
+            accept_encodings = []
             for line in header_lines:
                 if line.lower().startswith("accept-encoding:"):
-                    accept_encoding = line[len("accept-encoding:"):]
-                
+                    portion = line[len("accept-encoding:"):].strip()
+                    accept_encodings = [e.strip() for e in portion.split(",")]
                     break
             
             compressed_body = "empty"
-                 
-            if accept_encoding.strip() == "gzip":
-                response = f"HTTP/1.1 200 OK\r\nContent-Encoding: {accept_encoding}\r\nContent-Type: text/plain\r\nContent-Length: {len(compressed_body)}\r\n\r\n{compressed_body}"
+
+            if "gzip" in accept_encodings:
+                response = f"HTTP/1.1 200 OK\r\nContent-Encoding: {"gzip"}\r\nContent-Type: text/plain\r\nContent-Length: {len(compressed_body)}\r\n\r\n{compressed_body}"
             else:
                 response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {content_length}\r\n\r\n{message}"
+                
 
 
         elif requested.startswith("GET /user-agent"):
