@@ -1,6 +1,7 @@
 import threading 
 import socket  # noqa: F401
 import sys
+import gzip
 
 directory = "."
 
@@ -27,12 +28,23 @@ def handle_request(client_socket):
                     accept_encodings = [e.strip() for e in portion.split(",")]
                     break
             
-            compressed_body = "empty"
+            compressed_body = gzip.compress(message.encode())
 
             if "gzip" in accept_encodings:
-                response = f"HTTP/1.1 200 OK\r\nContent-Encoding: {"gzip"}\r\nContent-Type: text/plain\r\nContent-Length: {len(compressed_body)}\r\n\r\n{compressed_body}"
+                headers = (
+                    "HTTP/1.1 200 OK\r\n"
+                    "Content-Encoding: gzip\r\n"
+                    "Content-Type: text/plain\r\n"
+                    f"Content-Length: {len(compressed_body)}\r\n"
+                    "\r\n"
+                ).encode()
+                response = headers + compressed_body
+                client_socket.sendall(response)
+                return 
+                
             else:
                 response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {content_length}\r\n\r\n{message}"
+
                 
 
 
@@ -40,7 +52,7 @@ def handle_request(client_socket):
             lines  = requested.splitlines()
             user_agent_val = ""
             for line in lines:
-                if line.lower().startswith("user-agent"):
+                if line.lower().startswith("user-agent:"):
                     user_agent_val = line[11:].strip()
                     break
                 else:
