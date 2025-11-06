@@ -43,16 +43,27 @@ def handle_request(client_socket):
                 compressed_body = gzip.compress(message.encode())
 
                 if "gzip" in accept_encodings:
+
+                    if keep_alive:
                    
-                    headers = (
-                        "HTTP/1.1 200 OK\r\n"
-                        "Content-Encoding: gzip\r\n"
-                        "Content-Type: text/plain\r\n"
-                        f"Content-Length: {len(compressed_body)}\r\n"
-                        f"{connection_close_header}\r\n"
-                        
-                        "\r\n"
-                        ).encode()
+                        headers = (
+                            "HTTP/1.1 200 OK\r\n"
+                            "Content-Encoding: gzip\r\n"
+                            "Content-Type: text/plain\r\n"
+                            f"Content-Length: {len(compressed_body)}\r\n"
+                            f"{connection_close_header}\r\n"
+                            
+                            "\r\n"
+                            ).encode()
+                    else:
+                        headers = (
+                            "HTTP/1.1 200 OK\r\n"
+                            "Content-Encoding: gzip\r\n"
+                            "Content-Type: text/plain\r\n"
+                            f"Content-Length: {len(compressed_body)}\r\n"        
+                            "\r\n"
+                            ).encode()
+
                     
                     response = headers + compressed_body
                     client_socket.sendall(response)
