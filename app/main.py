@@ -6,19 +6,25 @@ import gzip
 directory = "."
 
 def handle_request(client_socket):
-    #globa
     global directory
     try:
         while True:
+            
+
             data = client_socket.recv(1024)
             if not data:
                 break
             requested = data.decode()
-            keep_alive = True  
-            if "Connection: close" in requested.lower():
+            keep_alive = True
+            if "connection: close" in requested.lower():
                 keep_alive = False
+            connection_close_header = "Connection: close" if not keep_alive else "" 
             if requested.startswith("GET / HTTP/1.1"):
-                response  = "HTTP/1.1 200 OK\r\n\r\n"
+                if keep_alive:
+                    response  = "HTTP/1.1 200 OK\r\n\r\n"
+                else:
+                    response = f"HTTP/1.1 200 OK\r\n{connection_close_header}\r\n\r\n"
+                
             elif requested.startswith("GET /echo/"):
                 path = requested.split()[1]
                 message = path[len("/echo/"):]
@@ -37,22 +43,31 @@ def handle_request(client_socket):
                 compressed_body = gzip.compress(message.encode())
 
                 if "gzip" in accept_encodings:
+                   
                     headers = (
                         "HTTP/1.1 200 OK\r\n"
                         "Content-Encoding: gzip\r\n"
                         "Content-Type: text/plain\r\n"
                         f"Content-Length: {len(compressed_body)}\r\n"
+                        f"{connection_close_header}\r\n"
+                        
                         "\r\n"
-                    ).encode()
+                        ).encode()
+                    
                     response = headers + compressed_body
                     client_socket.sendall(response)
                     continue 
                     
                 else:
-                    response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {content_length}\r\n\r\n{message}"
-
-                    
-
+                    if keep_alive:
+                        response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {content_length}\r\n\r\n{message}"
+                    else:
+                        response = (
+                            f"HTTP/1.1 200 OK\r\n"
+                            f"Content-Type: text/plain\r\n"
+                            f"Content-Length: {content_length}\r\n"
+                            f"{connection_close_header}\r\n"
+                            f"\r\n{message}")
 
             elif requested.startswith("GET /user-agent"):
                 lines  = requested.splitlines()
@@ -65,7 +80,7 @@ def handle_request(client_socket):
                         continue
 
                 user_agent_val_length = len(user_agent_val)
-                response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {user_agent_val_length}\r\n\r\n{user_agent_val}"
+                response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {user_agent_val_length}\r\n {connection_close_header}\r\n{user_agent_val}"
 
 
 
@@ -78,12 +93,15 @@ def handle_request(client_socket):
                     with open(filepath,"rb") as f:
                         content = f.read()
                         length = len(content)
-                        headers = (f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length:{length} \r\n\r\n")
+                        headers = (f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length:{length} \r\n{connection_close_header}\r\n")
                         client_socket.sendall(headers.encode() + content)
                         continue
                         
                 except FileNotFoundError:
-                    response = "HTTP/1.1 404 Not Found\r\n\r\n"
+                    if keep_alive:
+                        response = "HTTP/1.1 404 Not Found\r\n\r\n"
+                    else:
+                       response = f"HTTP/1.1 404 Not Found\r\n{connection_close_header}\r\n"
                     client_socket.sendall(response.encode())
                     continue 
             elif requested.startswith("POST /files/"):
@@ -140,6 +158,7 @@ def main():
             print(f"We have a connection from {addr}")
             t = threading.Thread(target=handle_request, args=(client_socket,))
             t.start()
+
             
     except KeyboardInterrupt:
         print("Halting Server")
