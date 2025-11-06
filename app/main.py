@@ -80,7 +80,12 @@ def handle_request(client_socket):
                         continue
 
                 user_agent_val_length = len(user_agent_val)
-                response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {user_agent_val_length}\r\n {connection_close_header}\r\n{user_agent_val}"
+                if keep_alive:
+                    response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {user_agent_val_length}\r\n{connection_close_header}\r\n{user_agent_val}"
+                else:
+                    response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {user_agent_val_length}\r\n\r\n{user_agent_val}"
+
+
 
 
 
@@ -93,7 +98,7 @@ def handle_request(client_socket):
                     with open(filepath,"rb") as f:
                         content = f.read()
                         length = len(content)
-                        headers = (f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length:{length} \r\n{connection_close_header}\r\n")
+                        headers = (f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length:{length} \r\n{connection_close_header}\r\n\r\n")
                         client_socket.sendall(headers.encode() + content)
                         continue
                         
@@ -101,7 +106,7 @@ def handle_request(client_socket):
                     if keep_alive:
                         response = "HTTP/1.1 404 Not Found\r\n\r\n"
                     else:
-                       response = f"HTTP/1.1 404 Not Found\r\n{connection_close_header}\r\n"
+                       response = f"HTTP/1.1 404 Not Found\r\n{connection_close_header}\r\n\r\n"
                     client_socket.sendall(response.encode())
                     continue 
             elif requested.startswith("POST /files/"):
@@ -115,19 +120,19 @@ def handle_request(client_socket):
                     with open(filepath,"wb") as f:
                         content = header_body[1]
                         f.write(content.encode())
-                        response = (f"HTTP/1.1 201 Created\r\n\r\n")
+                        response = (f"HTTP/1.1 201 Created\r\n{connection_close_header}\r\n\r\n")
                         client_socket.sendall(response.encode())
                         continue
                 except Exception as e:
                     print(f"error writing file:{e}")
-                    response = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
+                    response = f"HTTP/1.1 500 Internal Server Error\r\n{connection_close_header}\r\n\r\n"
                     client_socket.sendall(response.encode())
                     continue
 
 
 
             else:
-                response  = "HTTP/1.1 404 Not Found\r\n\r\n"
+                response  = f"HTTP/1.1 404 Not Found\r\n{connection_close_header}\r\n\r\n"
             client_socket.sendall(response.encode())
             if not keep_alive:
                 break
