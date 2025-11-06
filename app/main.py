@@ -45,23 +45,20 @@ def handle_request(client_socket):
                 if "gzip" in accept_encodings:
 
                     if keep_alive:
-                   
                         headers = (
                             "HTTP/1.1 200 OK\r\n"
                             "Content-Encoding: gzip\r\n"
                             "Content-Type: text/plain\r\n"
-                            f"Content-Length: {len(compressed_body)}\r\n"
-                            f"{connection_close_header}\r\n"
-                            
-                            "\r\n"
+                            f"Content-Length: {len(compressed_body)}\r\n\r\n"        
                             ).encode()
+                        
                     else:
                         headers = (
                             "HTTP/1.1 200 OK\r\n"
                             "Content-Encoding: gzip\r\n"
                             "Content-Type: text/plain\r\n"
-                            f"Content-Length: {len(compressed_body)}\r\n"        
-                            "\r\n"
+                            f"Content-Length: {len(compressed_body)}\r\n"
+                            f"{connection_close_header}\r\n\r\n"
                             ).encode()
 
                     
@@ -77,8 +74,8 @@ def handle_request(client_socket):
                             f"HTTP/1.1 200 OK\r\n"
                             f"Content-Type: text/plain\r\n"
                             f"Content-Length: {content_length}\r\n"
-                            f"{connection_close_header}\r\n"
-                            f"\r\n{message}")
+                            f"{connection_close_header}\r\n\r\n{message}")
+                            
 
             elif requested.startswith("GET /user-agent"):
                 lines  = requested.splitlines()
@@ -92,9 +89,9 @@ def handle_request(client_socket):
 
                 user_agent_val_length = len(user_agent_val)
                 if keep_alive:
-                    response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {user_agent_val_length}\r\n{connection_close_header}\r\n{user_agent_val}"
-                else:
                     response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {user_agent_val_length}\r\n\r\n{user_agent_val}"
+                else:
+                    response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {user_agent_val_length}\r\n{connection_close_header}\r\n\r\n{user_agent_val}"
 
 
 
@@ -131,19 +128,32 @@ def handle_request(client_socket):
                     with open(filepath,"wb") as f:
                         content = header_body[1]
                         f.write(content.encode())
-                        response = (f"HTTP/1.1 201 Created\r\n{connection_close_header}\r\n\r\n")
+                        if not keep_alive:
+                            response = (f"HTTP/1.1 201 Created\r\n{connection_close_header}\r\n\r\n")
+                        else:
+                            response = (f"HTTP/1.1 201 Created\r\n\r\n")
+
                         client_socket.sendall(response.encode())
                         continue
                 except Exception as e:
                     print(f"error writing file:{e}")
-                    response = f"HTTP/1.1 500 Internal Server Error\r\n{connection_close_header}\r\n\r\n"
+                    if not keep_alive:
+                        response = f"HTTP/1.1 500 Internal Server Error\r\n{connection_close_header}\r\n\r\n"
+                    else:
+                        response = f"HTTP/1.1 500 Internal Server Error\r\n\r\n"
+
                     client_socket.sendall(response.encode())
                     continue
 
 
 
             else:
-                response  = f"HTTP/1.1 404 Not Found\r\n{connection_close_header}\r\n\r\n"
+                if not keep_alive:
+
+                    response  = f"HTTP/1.1 404 Not Found\r\n{connection_close_header}\r\n\r\n"
+                else:
+                    response  = f"HTTP/1.1 404 Not Found\r\n\r\n"
+
             client_socket.sendall(response.encode())
             if not keep_alive:
                 break
