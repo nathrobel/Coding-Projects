@@ -106,7 +106,11 @@ def handle_request(client_socket):
                     with open(filepath,"rb") as f:
                         content = f.read()
                         length = len(content)
-                        headers = (f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length:{length} \r\n{connection_close_header}\r\n\r\n")
+                        if not keep_alive:
+                            headers = (f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length:{length} \r\n{connection_close_header}\r\n\r\n")
+                        else:
+                            headers = (f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length:{length}\r\n\r\n")
+
                         client_socket.sendall(headers.encode() + content)
                         continue
                         
